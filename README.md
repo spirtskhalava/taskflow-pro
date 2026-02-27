@@ -1,6 +1,6 @@
 # TaskFlow Pro
 
-Project management tool I built to get a proper feel for how a Laravel + Vue SPA holds up at some scale. Nothing groundbreaking — tasks, projects, teams, a kanban board — but the point was to do it properly: repository pattern, service layer, policies, typed frontend, the whole thing.
+Built this as a freelance project for a client who needed something lighter than Jira but more structured than a shared spreadsheet. Tasks, projects, teams, a kanban board. Nothing groundbreaking feature-wise, but the client wanted it done properly: clean API, role-based access, real-time updates, the works.
 
 Backend is Laravel 11 with Sanctum for auth, Redis for queues and cache, and Pusher for real-time updates when someone moves a task. Frontend is Vue 3 with the Composition API, Pinia, and TypeScript throughout.
 
