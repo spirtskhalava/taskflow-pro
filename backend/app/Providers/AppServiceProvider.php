@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Providers;
+
+use App\Models\Comment;
+use App\Models\Project;
+use App\Models\Task;
+use App\Policies\CommentPolicy;
+use App\Policies\ProjectPolicy;
+use App\Policies\TaskPolicy;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        //
+    }
+
+    public function boot(): void
+    {
+        Gate::policy(Project::class, ProjectPolicy::class);
+        Gate::policy(Task::class, TaskPolicy::class);
+        Gate::policy(Comment::class, CommentPolicy::class);
+
+        ResetPassword::createUrlUsing(function (object $notifiable, string $token) {
+            return config('app.frontend_url') . "/reset-password?token={$token}&email={$notifiable->getEmailForPasswordReset()}";
+        });
+    }
+}
