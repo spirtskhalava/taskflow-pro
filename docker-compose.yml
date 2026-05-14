@@ -1,0 +1,57 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/var/www/html
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      APP_ENV: local
+      DB_HOST: mysql
+      REDIS_HOST: redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: taskflow
+      MYSQL_ROOT_PASSWORD: secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  horizon:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: php artisan horizon
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - ./backend:/var/www/html
+
+volumes:
+  mysql_data:
