@@ -1,130 +1,73 @@
 # TaskFlow Pro
 
-A modern, full-stack project management SaaS application built with **Laravel 11** and **Vue 3**.
+Project management tool I built to get a proper feel for how a Laravel + Vue SPA holds up at some scale. Nothing groundbreaking — tasks, projects, teams, a kanban board — but the point was to do it properly: repository pattern, service layer, policies, typed frontend, the whole thing.
 
-## Tech Stack
+Backend is Laravel 11 with Sanctum for auth, Redis for queues and cache, and Pusher for real-time updates when someone moves a task. Frontend is Vue 3 with the Composition API, Pinia, and TypeScript throughout.
 
-### Backend
-- **Laravel 11** — PHP framework
-- **MySQL 8.0** — Primary database
-- **Redis** — Caching & queue driver
-- **Laravel Sanctum** — SPA authentication
-- **Laravel Echo + Pusher** — Real-time events
-- **Laravel Horizon** — Queue monitoring
-- Repository Pattern + Service Layer architecture
+## Stack
 
-### Frontend
-- **Vue 3** (Composition API + `<script setup>`)
-- **TypeScript**
-- **Pinia** — State management
-- **Vue Router 4** — Client-side routing
-- **Tailwind CSS** — Utility-first styling
-- **Axios** — HTTP client
+**Backend:** Laravel 11, MySQL 8, Redis, Sanctum, Horizon, Pusher  
+**Frontend:** Vue 3, TypeScript, Pinia, Vue Router, Tailwind CSS, Vite
 
-## Features
+## Running locally
 
-- **Authentication** — Register, login, email verification, password reset
-- **Project Management** — Create, assign, archive projects with deadlines
-- **Task Board** — Kanban-style board (To Do / In Progress / In Review / Done)
-- **Team Collaboration** — Invite members, role-based permissions (Owner / Admin / Member)
-- **Comments** — Threaded comments on tasks with @mentions
-- **File Attachments** — Upload files to tasks (S3-compatible storage)
-- **Activity Log** — Full audit trail per project
-- **Notifications** — Real-time in-app + email notifications
-- **Dashboard** — Stats, recent activity, assigned tasks
-- **API** — RESTful JSON API with full documentation
-
-## Architecture
-
-```
-taskflow-pro/
-├── backend/              # Laravel 11 API
-│   ├── app/
-│   │   ├── Http/
-│   │   │   ├── Controllers/API/
-│   │   │   ├── Middleware/
-│   │   │   ├── Requests/
-│   │   │   └── Resources/
-│   │   ├── Models/
-│   │   ├── Services/
-│   │   ├── Repositories/
-│   │   ├── Policies/
-│   │   ├── Events/
-│   │   ├── Listeners/
-│   │   └── Jobs/
-│   ├── database/
-│   │   ├── migrations/
-│   │   └── seeders/
-│   └── tests/
-└── frontend/             # Vue 3 SPA
-    └── src/
-        ├── stores/       # Pinia stores
-        ├── views/
-        ├── components/
-        ├── composables/
-        ├── services/
-        └── router/
-```
-
-## Setup
-
-### Prerequisites
-- PHP 8.2+
-- Node.js 20+
-- MySQL 8.0+
-- Redis
-
-### Backend
+You'll need PHP 8.2+, Node 20+, MySQL and Redis running. Or just use the Docker setup below.
 
 ```bash
+# backend
 cd backend
 composer install
 cp .env.example .env
 php artisan key:generate
 php artisan migrate --seed
-php artisan storage:link
 php artisan serve
-```
 
-### Frontend
-
-```bash
+# frontend (separate terminal)
 cd frontend
 npm install
 cp .env.example .env.local
 npm run dev
 ```
 
-## API Documentation
+The seeder creates a `demo@taskflow.dev` / `password` account with a few projects and tasks to click around.
 
-API docs are available at `/api/documentation` when running locally (L5-Swagger).
-
-### Key endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/login` | Login |
-| POST | `/api/auth/logout` | Logout |
-| GET | `/api/projects` | List projects |
-| POST | `/api/projects` | Create project |
-| GET | `/api/projects/{id}/tasks` | List tasks |
-| POST | `/api/projects/{id}/tasks` | Create task |
-| PATCH | `/api/tasks/{id}/status` | Update task status |
-| GET | `/api/dashboard` | Dashboard stats |
-
-## Testing
+### Docker
 
 ```bash
-# Backend
-cd backend
-php artisan test --coverage
-
-# Frontend
-cd frontend
-npm run test:unit
+docker compose up -d
 ```
 
-## License
+Spins up the app, MySQL, Redis, and a Horizon worker. Frontend still needs `npm run dev` locally since hot reload doesn't play well inside the container.
 
-MIT
+## How it's structured
+
+The backend follows a repository pattern — controllers are thin and delegate to a service layer, services talk to repositories, repositories handle the Eloquent queries. Overkill for a small project but that was the point.
+
+```
+backend/app/
+├── Http/
+│   ├── Controllers/API/   # thin, just auth + response formatting
+│   ├── Requests/          # validation lives here
+│   └── Resources/         # API transformers with conditional eager loading
+├── Services/              # business logic
+├── Repositories/          # data access, all Eloquent queries here
+├── Policies/              # authorization
+├── Events/ + Listeners/   # task status changes broadcast over Pusher
+└── Jobs/                  # notifications sent async via Redis queue
+```
+
+Frontend composables wrap the Pinia stores and handle error states so the views stay clean. The kanban board uses native HTML5 drag and drop with an optimistic update — status changes in the UI immediately and rolls back if the API call fails.
+
+## Tests
+
+```bash
+cd backend && php artisan test --coverage
+```
+
+Feature tests cover auth, project CRUD with policy checks, and task status transitions. Unit tests use Mockery to isolate the service layer.
+
+## Notes
+
+- Real-time updates require Pusher credentials in `.env`. Without them everything still works, the frontend falls back to polling every 30 seconds.
+- File attachments are stored locally by default (`storage/app/public`). Swap `FILESYSTEM_DISK=s3` and set the AWS keys to use S3.
+- `php artisan horizon` needs to be running for email notifications to go out.
